@@ -38,21 +38,20 @@ def plot_points(points_robot, points_world, transformed_robot):
 
 with open('robot_base_p.pkl', 'rb') as f:
     p = pickle.load(f)
-    print(p)
     p = np.array(p)
 
 with open('world_base_p_prime.pkl', 'rb') as f:
     p_prime = pickle.load(f)
     p_prime = np.array(p_prime)
 
-print("robot : ", p)
-print("mean :", np.mean(p))
 R, T = compute_calibration(p, p_prime)
         # Create the homogeneous transformation matrix
 H = np.eye(4)
 H[:3, :3] = R
 H[:3, 3] = T
 
+print(R)
+print(T)
 # Transform robot points
 transformed_robot = (R @ p.T).T + T
 plot_points(p, p_prime, transformed_robot)
