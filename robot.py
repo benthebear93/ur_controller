@@ -7,10 +7,10 @@ import spatialmath as sm
 from rtde_control import RTDEControlInterface
 from rtde_io import RTDEIOInterface
 from rtde_receive import RTDEReceiveInterface
-from scripts.robotiq_gripper import RobotiqGripper
 from transform3d import Transform as T
 
 from .config import ROBOT_IP, ROBOTIQ_PORT, UR5E_BASE_POS, UR5E_BASE_QUAT
+from .robotiq_gripper import RobotiqGripper
 from .utils import make_tf, se3_to_pose
 
 _DEFAULT_J_SPEED = 0.3
