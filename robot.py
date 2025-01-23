@@ -21,8 +21,6 @@ _DEFAULT_L_SPEED = 0.25
 _DEFAULT_L_ACC = 0.3
 # _DEFAULT_L_ACC = 1.0
 
-
-
 class Robot:
     def __init__(self, robot_ip: str = ROBOT_IP):
         self.ctrl = RTDEControlInterface(robot_ip)
@@ -91,4 +89,3 @@ class Robot:
             yield
         finally:
             self.end_techmode()
-
