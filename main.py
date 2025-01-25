@@ -88,7 +88,6 @@ def main() -> None:
     T_Tcp = make_tf(pos=Target_from_base, ori=robot.T_base_tcp.R)
     print("T goal : ", T_Tcp)
     robot.moveL(T_Tcp)
-
     # Visualize the transformation
     # visualize_tf(T_w_target, label="Target Transformation")
 
