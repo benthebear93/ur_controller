@@ -1,4 +1,3 @@
-
 from typing import Union
 
 import numpy as np
@@ -27,38 +26,39 @@ def sm_print(T: sm.SE3) -> None:
     """
     print(raw)
 
+
 def make_tf(
     pos: Union[np.ndarray, list] = [0, 0, 0],
     ori: Union[np.ndarray, sm.SE3, sm.SO3] = [1, 0, 0, 0],
 ) -> sm.SE3:
     """
-    Create an SE3 transformation matrix from the provided position and orientation.
+        Create an SE3 transformation matrix from the provided position and orientation.
 
-    This function constructs a SE3 transformation matrix that combines a translation vector
-    and an orientation. The orientation can be specified in various formats including rotation
-    matrices, quaternions, or SE3 objects. The function handles conversion between these forma
-ts
-    and constructs the final SE3 transformation matrix.
+        This function constructs a SE3 transformation matrix that combines a translation vector
+        and an orientation. The orientation can be specified in various formats including rotation
+        matrices, quaternions, or SE3 objects. The function handles conversion between these forma
+    ts
+        and constructs the final SE3 transformation matrix.
 
-    Parameters
-    ----------
-    pos : Union[np.ndarray, list], optional
-        The translation vector as a list or ndarray with shape (3,). Defaults to [0, 0, 0].
-    ori : Union[np.ndarray, sm.SE3, sm.SO3], optional
-        The orientation can be a rotation matrix (3x3), quaternion (4,), or SE3 object.
-        Defaults to [1, 0, 0, 0].
+        Parameters
+        ----------
+        pos : Union[np.ndarray, list], optional
+            The translation vector as a list or ndarray with shape (3,). Defaults to [0, 0, 0].
+        ori : Union[np.ndarray, sm.SE3, sm.SO3], optional
+            The orientation can be a rotation matrix (3x3), quaternion (4,), or SE3 object.
+            Defaults to [1, 0, 0, 0].
 
-    Returns
-    ----------
-    sm.SE3
-        The resulting SE3 transformation matrix combining the provided position and orientatio
-n.
+        Returns
+        ----------
+        sm.SE3
+            The resulting SE3 transformation matrix combining the provided position and orientatio
+    n.
 
-    Notes
-    -----
-    - The function handles various input formats for orientation and performs necessary conver
-sions.
-    - The position and orientation must be compatible with SE3 transformation.
+        Notes
+        -----
+        - The function handles various input formats for orientation and performs necessary conver
+    sions.
+        - The position and orientation must be compatible with SE3 transformation.
     """
 
     if isinstance(ori, list):
@@ -135,8 +135,6 @@ def is_R_valid(R: np.ndarray, tol: float = 1e-8) -> bool:
     return is_orthogonal and np.isclose(det, 1.0, atol=tol)
 
 
-
-
 def is_ori_valid(ori: Union[np.ndarray, sm.SE3] = [1, 0, 0, 0]) -> bool:
     """
     Check if the input orientation representation is valid.
@@ -180,7 +178,6 @@ def is_ori_valid(ori: Union[np.ndarray, sm.SE3] = [1, 0, 0, 0]) -> bool:
         raise ValueError("Unsupported type for orientation")
 
     return is_R_valid(R)
-
 
 
 def make_R_valid(R: np.ndarray, tol: float = 1e-6) -> np.ndarray:
@@ -236,6 +233,7 @@ def make_R_valid(R: np.ndarray, tol: float = 1e-6) -> np.ndarray:
 
     return Q
 
+
 def se3_to_pose(se3_matrix: sm.SE3) -> np.ndarray:
     """
     Convert an SE(3) matrix into a pose of the form [position, orientation],
@@ -269,12 +267,15 @@ def se3_to_pose(se3_matrix: sm.SE3) -> np.ndarray:
     pose = np.hstack((position, rotation_vector))
     return pose
 
-def transform_w_to_base(target_p_w: np.array, robot_base_pose: list, robot_base_quat: list):
+
+def transform_w_to_base(
+    target_p_w: np.array, robot_base_pose: list, robot_base_quat: list
+):
     """
     Transform a point from the world coordinate frame to the robot base coordinate frame.
 
     This function calculates the transformation of a point in the world frame to the
-    robot's base frame using the known rotation (as a quaternion) and position of the base 
+    robot's base frame using the known rotation (as a quaternion) and position of the base
     in the world frame.
 
     Parameters
@@ -295,8 +296,9 @@ def transform_w_to_base(target_p_w: np.array, robot_base_pose: list, robot_base_
     - The transformation applies the inverse of the rotation matrix and subtracts
       the base position to map the point to the base frame.
     """
- 
-    R_w_to_base = R.from_quat(robot_base_quat).as_matrix()
-    target_p_base = np.linalg.inv(R_w_to_base) @ (target_p_w - np.array(robot_base_pose))
-    return target_p_base
 
+    R_w_to_base = R.from_quat(robot_base_quat).as_matrix()
+    target_p_base = np.linalg.inv(R_w_to_base) @ (
+        target_p_w - np.array(robot_base_pose)
+    )
+    return target_p_base

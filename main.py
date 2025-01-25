@@ -1,26 +1,93 @@
+import json
+
+import customtkinter as ctk
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib
-from utils import make_tf, transform_w_to_base
-from config import T_W_BOARD_CORNER, UR5E_BASE_POS, UR5E_BASE_QUAT
+
 from robot import Robot
-from scipy.spatial.transform import Rotation as R
-import spatialmath as sm
-
-def main() -> None:
-    robot = Robot("192.168.0.12", False)
-    Tcp_T = make_tf(pos=robot.T_base_tcp.t, ori=robot.T_base_tcp.R)
-    print("Current TCP pos :", Tcp_T)
-
-    target_pos_w = np.array([0.539, -0.1417, Tcp_T.t[2]])
-    target_p_base = transform_w_to_base(target_pos_w)
-
-    target_T = make_tf(pos=target_p_base, ori=robot.T_base_tcp.R)
-    robot.moveL(target_T)
+from utils import make_tf, transform_w_to_base
 
 
-if __name__ == '__main__':
+def load_target_positions(filename):
+    """
+    Load target positions from a JSON file.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the JSON file containing target positions.
+
+    Returns
+    ----------
+    list
+        List of 3D positions loaded from the file.
+    """
+    try:
+        with open(filename, "r") as f:
+            positions = json.load(f)
+        return positions
+    except Exception as e:
+        print(f"Error loading target positions: {e}")
+        return []
+
+
+def move_robot(target_pos_w):
+    """
+    Function to calculate the target position and move the robot.
+
+    Parameters
+    ----------
+    target_pos_w : np.ndarray
+        A 3-element list representing the target position in the world frame.
+    """
+    try:
+        robot = Robot("192.168.0.12", False)
+        Tcp_T = make_tf(pos=robot.T_base_tcp.t, ori=robot.T_base_tcp.R)
+        print("Current TCP pos :", Tcp_T)
+
+        # Transform target position from world to base
+        target_p_base = transform_w_to_base(target_pos_w)
+
+        # Create target transformation matrix
+        target_T = make_tf(pos=target_p_base, ori=robot.T_base_tcp.R)
+        print(target_T)
+        # robot.moveL(target_T)
+        print(f"Robot moveL executed to position: {target_pos_w}!")
+    except Exception as e:
+        print("An error occurred:", e)
+
+
+def main():
+    """
+    Main UI function to create buttons that trigger the moveL event with different positions.
+    """
+    # Load target positions from an external file
+    target_positions = load_target_positions("target_positions.json")
+
+    if not target_positions:
+        print("No target positions loaded. Exiting.")
+        return
+
+    # Initialize the UI window
+    app = ctk.CTk()
+    app.title("Robot Controller")
+    app.geometry("400x300")
+
+    # Create buttons for each position
+    for i, pos in enumerate(target_positions):
+        button = ctk.CTkButton(
+            app,
+            text=f"Move to Position {i + 1}",
+            command=lambda p=pos: move_robot(
+                np.array(p)
+            ),  # Pass the position as a parameter
+        )
+        button.pack(pady=10)
+
+    # Run the UI loop
+    app.mainloop()
+
+
+if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:

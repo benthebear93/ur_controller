@@ -1,13 +1,12 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 
 def visualize_tfs(transform_list, labels=None):
     """
     Visualize multiple homogeneous transformation matrices.
-    
+
     :param transform_list: List of 4x4 homogeneous transformation matrices
     :param labels: Optional list of labels corresponding to each transformation
     """
@@ -19,8 +18,8 @@ def visualize_tfs(transform_list, labels=None):
 
     # Iterate through the list of transformations
     for i, transform in enumerate(transform_list):
-        label = labels[i] if labels is not None else f"Transformation {i+1}"
-        
+        label = labels[i] if labels is not None else f"Transformation {i + 1}"
+
         # Extract origin and rotation matrix
         origin = transform[:3, 3]
         rotation = transform[:3, :3]
@@ -58,11 +57,11 @@ if __name__ == "__main__":
 
     T2 = np.eye(4)
     T2[:3, 3] = [-0.3, -0.4, 0.2]
-    T2[:3, :3] = R.from_euler('xyz', [30, 45, 60], degrees=True).as_matrix()
+    T2[:3, :3] = R.from_euler("xyz", [30, 45, 60], degrees=True).as_matrix()
 
     T3 = np.eye(4)
     T3[:3, 3] = [0.1, -0.5, 0.3]
-    T3[:3, :3] = R.from_euler('xyz', [-45, 0, 90], degrees=True).as_matrix()
+    T3[:3, :3] = R.from_euler("xyz", [-45, 0, 90], degrees=True).as_matrix()
 
     # Visualize the transformations
     visualize_tfs([T1, T2, T3], labels=["T1", "T2", "T3"])
