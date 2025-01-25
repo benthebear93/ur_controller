@@ -6,7 +6,7 @@ import time
 from enum import Enum
 from typing import OrderedDict, Tuple, Union
 
-from scripts.config import (
+from config import (
     _DEFAULT_GRIPPER_FORCE,
     _DEFAULT_GRIPPER_SPEED,
     _MAX_GRIPPER_POS,

@@ -2,7 +2,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+from scipy.spatial.transform import Rotation as R
 
 def compute_calibration(points_robot, points_world):
     centroid_robot = np.mean(points_robot, axis=0)
@@ -44,14 +44,18 @@ with open('world_base_p_prime.pkl', 'rb') as f:
     p_prime = pickle.load(f)
     p_prime = np.array(p_prime)
 
-R, T = compute_calibration(p, p_prime)
+Rot, T = compute_calibration(p, p_prime)
         # Create the homogeneous transformation matrix
+r = R.from_matrix(Rot)
+quat = r.as_quat()
+print("quat:", quat)
 H = np.eye(4)
-H[:3, :3] = R
-H[:3, 3] = T
-
-print(R)
+H[:3, :3] = Rot
+H[:3, 3] = T 
+# H : World to robot base
+print(H)
+print(Rot)
 print(T)
 # Transform robot points
-transformed_robot = (R @ p.T).T + T
+transformed_robot = (Rot @ p.T).T + T
 plot_points(p, p_prime, transformed_robot)

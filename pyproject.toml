@@ -15,12 +15,8 @@ pdoc = "==14.6.1"
 spatialmath-python = "==1.1.9"
 glfw = "==2.7.0"
 pandas= "==2.2.2"
-
-[tool.poetry.group.real]
-optional = true
-
-[tool.poetry.group.real.dependencies]
 ur_rtde = "==1.5.9"
+pyqt6 = "^6.8.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
