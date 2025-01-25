@@ -17,7 +17,7 @@ _DEFAULT_J_SPEED = 0.3
 # _DEFAULT_J_SPEED = 1.0
 _DEFAULT_J_ACC = 0.3
 # _DEFAULT_J_ACC = 1.0
-_DEFAULT_L_SPEED = 0.25
+_DEFAULT_L_SPEED = 0.1
 _DEFAULT_L_ACC = 0.3
 # _DEFAULT_L_ACC = 1.0
 
@@ -38,13 +38,18 @@ class Robot:
         self.T_tcp_gripper_tcp = sm.SE3.Tz(0.20) if self.has_gripper else sm.SE3()
         # self.T_tcp_gripper_tcp = sm.SE3.Tz(0.18) if self.has_gripper else sm.SE3()
 
-        self.ctrl.setTcp([0] * 6)
+        # self.ctrl.setTcp([0] * 6)
 
     def moveL(
         self, pose: sm.SE3, speed: int = _DEFAULT_L_SPEED, acc: int = _DEFAULT_L_ACC
     ):
         pose = pose @ self.T_tcp_gripper_tcp.inv()
+        print("pose:\n", pose)
         T = se3_to_pose(pose)
+        print("T", T)
+        Ti_pos = T[:3]
+        Ti_rot = T[3:6]
+        print(make_tf(Ti_pos, Ti_rot))
         assert self.ctrl.moveL(T, speed, acc)
 
     def moveJ(

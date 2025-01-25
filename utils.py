@@ -261,8 +261,9 @@ def se3_to_pose(se3_matrix: sm.SE3) -> np.ndarray:
 
     # Convert the rotation matrix to a rotation vector
     rotation = R.from_matrix(rotation_matrix)
-    rotation_vector = rotation.as_rotvec()  # Returns a (3,) NumPy array [rx, ry, rz]
-
+    rotation_vector = rotation.as_euler(
+        "zyx"
+    )  # Returns a (3,) NumPy array [rx, ry, rz]
     # Combine position and rotation vector into a single pose
     pose = np.hstack((position, rotation_vector))
     return pose
