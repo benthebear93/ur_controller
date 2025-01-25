@@ -3,6 +3,7 @@ import json
 import customtkinter as ctk
 import numpy as np
 
+from config import UR5E_BASE_POS, UR5E_BASE_QUAT
 from robot import Robot
 from utils import make_tf, transform_w_to_base
 
@@ -45,12 +46,12 @@ def move_robot(target_pos_w):
         print("Current TCP pos :", Tcp_T)
 
         # Transform target position from world to base
-        target_p_base = transform_w_to_base(target_pos_w)
+        target_p_base = transform_w_to_base(target_pos_w, UR5E_BASE_POS, UR5E_BASE_QUAT)
 
         # Create target transformation matrix
         target_T = make_tf(pos=target_p_base, ori=robot.T_base_tcp.R)
         print(target_T)
-        # robot.moveL(target_T)
+        robot.moveL(target_T)
         print(f"Robot moveL executed to position: {target_pos_w}!")
     except Exception as e:
         print("An error occurred:", e)
