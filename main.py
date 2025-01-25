@@ -2,16 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib
-from utils import make_tf
+from utils import make_tf, transform_w_to_base
 from config import T_W_BOARD_CORNER, UR5E_BASE_POS, UR5E_BASE_QUAT
 from robot import Robot
 from scipy.spatial.transform import Rotation as R
 import spatialmath as sm
-
-def transform_w_to_base(target_p_w: np.array):
-    R_w_to_base = R.from_quat(UR5E_BASE_QUAT).as_matrix()
-    target_p_base = np.linalg.inv(R_w_to_base) @ (target_p_w - np.array(UR5E_BASE_POS))
-    return target_p_base
 
 def main() -> None:
     robot = Robot("192.168.0.12", False)
