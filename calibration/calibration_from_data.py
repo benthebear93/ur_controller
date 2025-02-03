@@ -48,7 +48,6 @@ def plot_points(points_robot, points_world, transformed_robot):
         marker="^",
         label="Transformed Robot Points",
     )
-
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
@@ -59,6 +58,7 @@ def plot_points(points_robot, points_world, transformed_robot):
 
 with open("robot_base_p.pkl", "rb") as f:
     p = pickle.load(f)
+    print(p)
     p = np.array(p)
 
 with open("world_base_p_prime.pkl", "rb") as f:
@@ -67,16 +67,18 @@ with open("world_base_p_prime.pkl", "rb") as f:
 
 Rot, T = compute_calibration(p, p_prime)
 # Create the homogeneous transformation matrix
+
+print("T : \n", T)
+print("Rot \n", Rot)
 r = R.from_matrix(Rot)
-quat = r.as_quat()
-print("quat:", quat)
+quat = r.as_quat()  # x,y,z,w
+# print("quat:", quat)
 H = np.eye(4)
 H[:3, :3] = Rot
 H[:3, 3] = T
 # H : World to robot base
-print("\n", H)
-print(Rot)
-print(T)
+# print("Rot : \n", Rot)
+# print(T)
 # Transform robot points
 transformed_robot = (Rot @ p.T).T + T
 plot_points(p, p_prime, transformed_robot)

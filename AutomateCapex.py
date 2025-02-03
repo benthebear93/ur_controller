@@ -15,7 +15,6 @@ class AutomateCapex:
 
     @property
     def init_pose(self):
-        """초기 위치를 읽기 전용 속성으로 유지"""
         return self._init_pose
 
     def get_tcp_pose(self):
@@ -23,9 +22,11 @@ class AutomateCapex:
 
     def pick_tube(self, tube_poses):
         """Pick up the tube at the given pose."""
+        # TODO 1: CHECK CALIBRATION FIRST!!!
+
         # Always go to the initial position first.
         # self.robot.hande.move(0, 5, 10)
-        self.move_to_target(self.init_pose)
+        self.move_to_target(self.init_pose, T_W_DEFAULT.R)
         # target_pos_w = np.array([0.7561, -0.4463, 0.272])
         # self.move_to_target(target_pos_w, T_W_S1.R)
         # self.robot.moveL(T_BASE_S1)
@@ -35,35 +36,31 @@ class AutomateCapex:
         # tube_d_up = np.array([0.750, -0.225, 0.250])
         # time.sleep(2)
         # self.move_to_target(tube_d_up)
-        # TODO: Implement the logic for picking up the tube
         pass
 
-    def move_to_target(self, target_pos_w: np.array, rot: sm.SE3 = None):
+    def move_to_target(self, target_pos_w: np.array, rot: sm.SO3 = None):
         """Move the robot to the target position in world coordinates."""
         T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
-        if rot is None:
-            rot = T_W_Tcp
 
-        T_W_Target = make_tf(pos=target_pos_w, ori=T_W_Tcp.R)
-        print(T_W_Target)
+        # TODO 2: CHECK T_W_Tcp and put R in to T_W_DEFAULT.
+        print("Tcp T in world :\n", T_W_Tcp)
+        if rot is None:
+            rot = T_W_Tcp.R
+
+        T_W_Target = make_tf(pos=target_pos_w, ori=rot)
+        print("Target T in world :\n", T_W_Target)
         T_BASE_Target = self.T_W_BASE.inv() @ T_W_Target
-        print(T_BASE_Target)
-        self.robot.moveL(T_BASE_Target)
+        print("Target T in base :\n", T_BASE_Target)
+        # self.robot.moveL(T_BASE_Target)
 
     def run(self):
         """Main execution function."""
-        tube_a = np.array([0.700, -0.175, 0.220])
-        tube_b = np.array([0.700, -0.225, 0.220])
-        tube_c = np.array([0.750, -0.175, 0.220])
-        tube_d = np.array([0.750, -0.225, 0.135])
+        tube_a = np.array([0.700, 0.175, 0.220])
+        tube_b = np.array([0.700, 0.225, 0.220])
+        tube_c = np.array([0.750, 0.175, 0.220])
+        tube_d = np.array([0.750, 0.225, 0.135])
         tube_poses = [tube_a, tube_b, tube_c, tube_d]
         self.pick_tube(tube_poses)
-        # target_pos_w = np.array([0.700, -0.175, 0.400])
-        # self.move_to_target(target_pos_w)
-        # target_pos_w = np.array([0.700, -0.150, 0.350])
-        # self.move_to_target(target_pos_w)
-        # target_pos_w = np.array([0.700, -0.175, 0.300])
-        # self.move_to_target(target_pos_w)
 
 
 if __name__ == "__main__":
