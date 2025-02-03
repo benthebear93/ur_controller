@@ -7,9 +7,10 @@ import spatialmath as sm
 from rtde_control import RTDEControlInterface
 from rtde_io import RTDEIOInterface
 from rtde_receive import RTDEReceiveInterface
+from transform3d import Transform as T
 
 # from transform3d import Transform as T
-from config import ROBOT_IP, ROBOTIQ_PORT, UR5E_BASE_POS, UR5E_BASE_QUAT
+from config import ROBOT_IP, ROBOTIQ_PORT
 from robotiq_gripper import RobotiqGripper
 from utils import make_tf, se3_to_pose
 
@@ -30,12 +31,13 @@ class Robot:
         if flag_gripper:
             self.hande = RobotiqGripper()
             self.hande.connect(robot_ip, ROBOTIQ_PORT)
-            self.hande.activate()
+            self.hande.activate(False)
             self.has_gripper = self.hande.is_active()
         else:
             self.has_gripper = False
 
-        self.T_tcp_gripper_tcp = sm.SE3.Tz(0.20) if self.has_gripper else sm.SE3()
+        self.T_tcp_gripper_tcp = sm.SE3()
+        # sm.SE3.Tz(0.20) if self.has_gripper else sm.SE3()
         # self.T_tcp_gripper_tcp = sm.SE3.Tz(0.18) if self.has_gripper else sm.SE3()
 
         # self.ctrl.setTcp([0] * 6)
@@ -44,12 +46,7 @@ class Robot:
         self, pose: sm.SE3, speed: int = _DEFAULT_L_SPEED, acc: int = _DEFAULT_L_ACC
     ):
         pose = pose @ self.T_tcp_gripper_tcp.inv()
-        print("pose:\n", pose)
         T = se3_to_pose(pose)
-        print("T", T)
-        Ti_pos = T[:3]
-        Ti_rot = T[3:6]
-        print(make_tf(Ti_pos, Ti_rot))
         assert self.ctrl.moveL(T, speed, acc)
 
     def moveJ(
@@ -86,10 +83,12 @@ class Robot:
 
     @property
     def T_base_tcp(self):
-        Ti = self.recv.getActualTCPPose()
-        Ti_pos = Ti[:3]
-        Ti_rot = Ti[3:6]
-        return make_tf(pos=Ti_pos, ori=Ti_rot) @ self.T_tcp_gripper_tcp
+        # Ti = self.recv.getActualTCPPose()
+        # Ti_pos = Ti[:3]
+        # Ti_rot = Ti[3:6]
+        # return make_tf(pos=Ti_pos, ori=Ti_rot) @ self.T_tcp_gripper_tcp
+        Ti = T.from_xyz_rotvec(self.recv.getActualTCPPose())
+        return make_tf(pos=Ti.p, ori=Ti.R) @ self.T_tcp_gripper_tcp
 
     def get_q(self):
         return self.recv.getActualQ()
@@ -98,13 +97,13 @@ class Robot:
         time.sleep(0.2)  # a sleep is needed to reset properly
         self.ctrl.zeroFtSensor()
 
-    @property
-    def T_w_base(self) -> sm.SE3:
-        return make_tf(pos=UR5E_BASE_POS, ori=UR5E_BASE_QUAT) @ sm.SE3.Rz(np.pi)
+    # @property
+    # def T_w_base(self) -> sm.SE3:
+    #     return make_tf(pos=UR5E_BASE_POS, ori=UR5E_BASE_ROT) @ sm.SE3.Rz(np.pi)
 
-    @property
-    def T_w_tcp(self) -> sm.SE3:
-        return self.T_w_base @ self.T_base_tcp
+    # @property
+    # def T_w_tcp(self) -> sm.SE3:
+    #     return self.T_w_base @ self.T_base_tcp
 
     @contextmanager
     def teachmode_ctx(self):

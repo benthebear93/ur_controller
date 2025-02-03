@@ -261,45 +261,13 @@ def se3_to_pose(se3_matrix: sm.SE3) -> np.ndarray:
 
     # Convert the rotation matrix to a rotation vector
     rotation = R.from_matrix(rotation_matrix)
-    rotation_vector = rotation.as_euler(
-        "zyx"
-    )  # Returns a (3,) NumPy array [rx, ry, rz]
+    rotation_vector = rotation.as_rotvec()  # Returns a (3,) NumPy array [rx, ry, rz]
     # Combine position and rotation vector into a single pose
     pose = np.hstack((position, rotation_vector))
     return pose
 
 
-def transform_w_to_base(
-    target_p_w: np.array, robot_base_pose: list, robot_base_quat: list
-):
-    """
-    Transform a point from the world coordinate frame to the robot base coordinate frame.
-
-    This function calculates the transformation of a point in the world frame to the
-    robot's base frame using the known rotation (as a quaternion) and position of the base
-    in the world frame.
-
-    Parameters
-    ----------
-    target_p_w : np.ndarray
-        A 3-element array representing the point's position in the world frame.
-
-    Returns
-    ----------
-    np.ndarray
-        A 3-element array representing the transformed point's position in the robot's
-        base frame.
-
-    Notes
-    -----
-    - The function uses the quaternion representation of the robot base's orientation
-      in the world frame to compute the rotation matrix.
-    - The transformation applies the inverse of the rotation matrix and subtracts
-      the base position to map the point to the base frame.
-    """
-
-    R_w_to_base = R.from_quat(robot_base_quat).as_matrix()
-    target_p_base = np.linalg.inv(R_w_to_base) @ (
-        target_p_w - np.array(robot_base_pose)
-    )
-    return target_p_base
+def transform_w_to_base(T_W_Tcp: np.array, T_W_Target: np.array, T_W_BASE: np.array):
+    T_W_Target = make_tf(pos=T_W_Target.t, ori=T_W_Tcp.R)
+    T_BASE_Target = T_W_BASE.inv() @ T_W_Target
+    return T_BASE_Target

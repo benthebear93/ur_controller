@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
+
 def compute_calibration(points_robot, points_world):
     centroid_robot = np.mean(points_robot, axis=0)
     centroid_world = np.mean(points_world, axis=0)
@@ -20,40 +21,60 @@ def compute_calibration(points_robot, points_world):
     T = centroid_world - R @ centroid_robot
     return R, T
 
+
 def plot_points(points_robot, points_world, transformed_robot):
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
-    ax.scatter(points_robot[:, 0], points_robot[:, 1], points_robot[:, 2], color='red', label='Robot Base Points')
-    ax.scatter(points_world[:, 0], points_world[:, 1], points_world[:, 2], color='blue', label='World Points')
-    ax.scatter(transformed_robot[:, 0], transformed_robot[:, 1], transformed_robot[:, 2], color='green', marker='^', label='Transformed Robot Points')
+    ax.scatter(
+        points_robot[:, 0],
+        points_robot[:, 1],
+        points_robot[:, 2],
+        color="red",
+        label="Robot Base Points",
+    )
+    ax.scatter(
+        points_world[:, 0],
+        points_world[:, 1],
+        points_world[:, 2],
+        color="blue",
+        label="World Points",
+    )
+    ax.scatter(
+        transformed_robot[:, 0],
+        transformed_robot[:, 1],
+        transformed_robot[:, 2],
+        color="green",
+        marker="^",
+        label="Transformed Robot Points",
+    )
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
     ax.legend()
-    plt.title('Robot-World Calibration Visualization')
+    plt.title("Robot-World Calibration Visualization")
     plt.show()
 
 
-with open('robot_base_p.pkl', 'rb') as f:
+with open("robot_base_p.pkl", "rb") as f:
     p = pickle.load(f)
     p = np.array(p)
 
-with open('world_base_p_prime.pkl', 'rb') as f:
+with open("world_base_p_prime.pkl", "rb") as f:
     p_prime = pickle.load(f)
     p_prime = np.array(p_prime)
 
 Rot, T = compute_calibration(p, p_prime)
-        # Create the homogeneous transformation matrix
+# Create the homogeneous transformation matrix
 r = R.from_matrix(Rot)
 quat = r.as_quat()
 print("quat:", quat)
 H = np.eye(4)
 H[:3, :3] = Rot
-H[:3, 3] = T 
+H[:3, 3] = T
 # H : World to robot base
-print(H)
+print("\n", H)
 print(Rot)
 print(T)
 # Transform robot points
