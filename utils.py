@@ -74,17 +74,22 @@ def make_tf(
 
     if len(ori) == 9:
         ori = np.reshape(ori, (3, 3))
+        # print("len ori :", ori)
 
     # Convert ori to SE3 if it's already a rotation matrix or a quaternion
     if isinstance(ori, np.ndarray):
         if ori.shape == (3, 3):  # Assuming ori is a rotation matrix
             ori = ori
+            # print("shape-ori \n", ori)
         elif ori.shape == (4,):  # Assuming ori is a quaternion
             ori = sm.UnitQuaternion(s=ori[0], v=ori[1:]).R
         elif ori.shape == (3,):  # Assuming ori is rpy
             ori = sm.SE3.Eul(ori, unit="rad").R
 
-    T_R = smb.r2t(ori) if is_R_valid(ori) else smb.r2t(make_R_valid(ori))
+    # print(is_R_valid(ori))
+
+    T_R = smb.r2t(ori)
+    # if is_R_valid(ori) else smb.r2t(make_R_valid(ori))
     R = sm.SE3(T_R, check=False).R
 
     # Combine translation and orientation
