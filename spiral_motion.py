@@ -2,7 +2,7 @@ import numpy as np
 import rtde_control
 import time
 
-rtde_c = rtde_control.RTDEControlInterface("192.168.56.101")
+rtde_c = rtde_control.RTDEControlInterface("192.168.0.12")
 
 # Task parameters
 dt = 1.0/500 # 500Hz control loop
@@ -13,7 +13,7 @@ compliance_vector = [1, 1, 1, 0, 0, 0]
 dTheta = 6*np.pi/10
 k = 0.001
 z_force = 0 # -10
-vMax = [1.0, 1.0, 1.0, 0.5, 0.5, 0.5]
+vMax = [0.1*1.0, 0.1*1.0, 0.1*1.0, 0.1*0.5, 0.1*0.5, 0.1*0.5]
 
 rtde_c.zeroFtSensor() # reset force sensor due to drift
 time.sleep(0.2)

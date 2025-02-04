@@ -18,7 +18,7 @@ _DEFAULT_J_SPEED = 0.3
 # _DEFAULT_J_SPEED = 1.0
 _DEFAULT_J_ACC = 0.3
 # _DEFAULT_J_ACC = 1.0
-_DEFAULT_L_SPEED = 0.1
+_DEFAULT_L_SPEED = 0.05
 _DEFAULT_L_ACC = 0.3
 # _DEFAULT_L_ACC = 1.0
 
@@ -28,6 +28,7 @@ class Robot:
         self.ctrl = RTDEControlInterface(robot_ip)
         self.recv = RTDEReceiveInterface(robot_ip)
         self.io = RTDEIOInterface(robot_ip)
+        self.ctrl.zeroFtSensor() # reset force sensor due to drift
         if flag_gripper:
             self.hande = RobotiqGripper()
             self.hande.connect(robot_ip, ROBOTIQ_PORT)
