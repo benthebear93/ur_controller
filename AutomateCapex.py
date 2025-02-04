@@ -34,23 +34,25 @@ class AutomateCapex:
 
     def push_it_in(self):
         print("push it in")
-        # goal = T_W_S1 @ sm.SE3.Tz(0.35)
-        # self.move_to_target(goal.t, goal)
+        goal = T_W_S1 @ sm.SE3.Tz(0.035)
+        self.move_to_target(goal.t, goal, 0.005)
         # self.robot.hande.move(120, 1, 10)
 
-    def move_to_target(self, target_pos_w: np.array, rot: sm.SO3 = None):
+    def move_to_target(self, target_pos_w: np.array, rot: sm.SO3 = None, vel:int = None):
         """Move the robot to the target position in world coordinates."""
         T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
 
         print("Tcp T in world :\n", T_W_Tcp)
         if rot is None:
             rot = T_W_DEFAULT.R
+        if vel is None:
+            vel = 0.1
 
         T_W_Target = make_tf(pos=target_pos_w, ori=rot)
         # print("Target T in world :\n", T_W_Target)
         T_BASE_Target = self.T_W_BASE.inv() @ T_W_Target
         # print("Target T in base :\n", T_BASE_Target)
-        self.robot.moveL(T_BASE_Target)
+        self.robot.moveL(T_BASE_Target, vel)
 
     def run(self):
         # Always go to the initial position first.
@@ -62,7 +64,8 @@ class AutomateCapex:
         tube_c = np.array([0.750, -0.175, 0.220])
         tube_d = np.array([0.750, -0.225, 0.120])
         tube_poses = [tube_a, tube_b, tube_c, tube_d]
-        # self.pick_tube(tube_poses)
+        self.pick_tube(tube_poses)
+        self.push_it_in()
 
 
 if __name__ == "__main__":
