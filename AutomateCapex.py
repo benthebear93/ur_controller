@@ -27,71 +27,76 @@ class AutomateCapex:
 
     def pick_tube(self, tube_poses):
         """Pick up the tube at the given pose."""
-        self.move_to_target(tube_poses[3])
-        self.robot.hande.move(225, 1, 10)
-        tube_d_up = np.array([0.750, -0.225, 0.250])
+        self.move_to_target(tube_poses)
+        self.robot.hande.move(225, 1, 255)
+        tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]+0.120])
         time.sleep(2)
         self.move_to_target(tube_d_up)
         self.move_to_target(T_W_S1.t, T_W_S1)
         pass
 
+    def wire_insert(self):
+        T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
+        T_W_Tcp.t[2] = T_W_Tcp.t[2]
+        self.move_to_target(T_W_Tcp)
+
     def push_it_in(self):
         print("push it in")
-        # goal = T_W_S1 @ sm.SE3.Tz(0.0175)
-        goal_check = 0
-        x_check = 1
-        y_check = 1
+        depth_step = 0
+        xy_check = 0
         xy_flag = 0
         spiral = 0
-        decay_factor = 0.9  # 점점 작아지는 정도
-        spiral_factor = 0.002  # 이동 크기
+        dirx = [1, 1, -1, -1]
+        diry = [1, -1, -1, 1]
+        max_z_dist = 190/5
         while True:
-            self.wrench_thrs = np.linalg.norm(self.wrench_data)
-            print(self.wrench_thrs)
             self.wrench_data = self.robot.recv.getActualTCPForce()
-            print(self.wrench_data)
-            print("moved :", 0.0005*goal_check)
-            if self.wrench_thrs > 4.0:
-                x_check = -1*x_check
-                y_check = -1*y_check
-                spiral +=1
-                r = 0.002 * np.exp(-0.1 * spiral)  # 점점 작아지는 반지름
-                theta = spiral * np.pi / 6  # 회전 각도
-
-                x_offset = r * np.cos(theta)
-                y_offset = r * np.sin(theta)
-                print('x :', x_offset, "y :", y_offset)
-                if xy_flag == 0:
-                    print("X !")
-                    goal =  sm.SE3.Tx(0.002*x_check +x_offset) @ T_W_S1 @ sm.SE3.Tz(0.0005*goal_check-0.0005)
-                    self.move_to_target(goal.t, goal, 0.002)
-                    goal =  sm.SE3.Tx(0.002*x_check+x_offset) @ T_W_S1 @ sm.SE3.Tz(0.0005*goal_check)
-                    self.move_to_target(goal.t, goal, 0.002)
-                    xy_flag = 1
-                    time.sleep(0.1)
+            Fx = self.wrench_data[0]
+            Fy = self.wrench_data[1]
+            Fz = self.wrench_data[2] 
+            print(f"F : {self.wrench_data[0]:.3f}, {self.wrench_data[1]:.3f}, {self.wrench_data[2]:.3f} :")
+            print(f"GOAL CHECK ({depth_step}/38) :")
+            print(" ")
+            if Fz > 5.5:
+                if abs(Fx) > 2.0 or abs(Fy) > 2.0:
+                    for i in range(0, 4):
+                    if xy_flag == 0:
+                        goal =  sm.SE3.Tx(0.002*dirx[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step-0.001)
+                        self.move_to_target(goal.t, goal, 0.002)
+                        goal =  sm.SE3.Tx(0.002*dirx[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
+                        self.move_to_target(goal.t, goal, 0.002)
+                        xy_flag = 1
+                        time.sleep(0.1)
+                    else:
+                        goal = sm.SE3.Ty(0.002*diry[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step-0.001) 
+                        self.move_to_target(goal.t, goal, 0.002)
+                        goal =  sm.SE3.Ty(0.002*diry[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
+                        self.move_to_target(goal.t, goal, 0.002)
+                        xy_flag = 0
+                        time.sleep(0.1)
+                    xy_check +=1
+                    if xy_check > 3:
+                        xy_check = 0
                 else:
-                    print("Y !")
-                    goal = sm.SE3.Ty(0.002*y_check+y_offset) @ T_W_S1 @ sm.SE3.Tz(0.0005*goal_check-0.0005) 
-                    self.move_to_target(goal.t, goal, 0.002)
-                    goal =  sm.SE3.Ty(0.002*y_check+y_offset) @ T_W_S1 @ sm.SE3.Tz(0.0005*goal_check)
-                    self.move_to_target(goal.t, goal, 0.002)
-                    xy_flag = 0
+                    depth_step +=1
+                    goal = T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
+                    self.move_to_target(goal.t, goal, 0.0025)
                     time.sleep(0.1)
             else:
-                goal_check +=1
-                goal = T_W_S1 @ sm.SE3.Tz(0.0005*goal_check)
-                self.contact_pos = goal
+                depth_step +=1
+                goal = T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
                 self.move_to_target(goal.t, goal, 0.0025)
                 time.sleep(0.1)
-                if goal_check > 175/5:
-                    break
+            if depth_step > max_z_dist:
+                break
         self.robot.hande.move(0, 1, 10)
+        time.sleep(2)
 
     def move_to_target(self, target_pos_w: np.array, rot: sm.SO3 = None, vel:int = None):
         """Move the robot to the target position in world coordinates."""
         T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
 
-        print("Tcp T in world :\n", T_W_Tcp)
+        # print("Tcp T in world :\n", T_W_Tcp)
         if rot is None:
             rot = T_W_DEFAULT.R
         if vel is None:
@@ -108,13 +113,18 @@ class AutomateCapex:
         self.robot.hande.move(0, 5, 10)
         self.move_to_target(self.init_pose, T_W_DEFAULT.R)
         """Main execution function."""
-        tube_a = np.array([0.700, -0.175, 0.220])
+        tube_a = np.array([0.700, -0.175, 0.120])
         tube_b = np.array([0.700, -0.225, 0.220])
         tube_c = np.array([0.750, -0.175, 0.220])
         tube_d = np.array([0.750, -0.225, 0.120])
         tube_poses = [tube_a, tube_b, tube_c, tube_d]
-        self.pick_tube(tube_poses)
+        self.pick_tube(tube_poses[3])
         self.push_it_in()
+        # T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
+        # T_W_move_out = T_W_Tcp @ sm.SE3.Tz(-0.08)
+        # print("MOVE OUT : \n", T_W_move_out)
+        # self.move_to_target(T_W_move_out, T_W_move_out.R)
+        # self.pick_tube(tube_poses[1])
 
 
 if __name__ == "__main__":
