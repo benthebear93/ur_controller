@@ -65,6 +65,11 @@ class Robot:
         T = se3_to_pose(pose)
         assert self.ctrl.moveJ_IK(T, speed, acc)
 
+    def speedL(
+        self, qd: np.ndarray, acc: int = _DEFAULT_J_ACC) -> None:
+        dt = 1.0 / 400
+        assert self.ctrl.speedL(qd, acc, dt)
+
     def servoJ(
         self, q: np.ndarray, speed: int = _DEFAULT_J_SPEED, acc: int = _DEFAULT_J_ACC
     ) -> None:
