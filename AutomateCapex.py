@@ -99,7 +99,7 @@ class AutomateCapex:
 
     def tilt_it_in(self,target_hole,  speed_scalar, acceleration,tilt_amount):
         print("tilt it in")
-        Tool_length = 0.160+0.083
+        Tool_length = 0.160+0.081
         print(Tool_length)
         delta_p = 0.005
 
@@ -234,7 +234,7 @@ class AutomateCapex:
 
         self.move_to_target(reset_point)
         
-        position_2 = [0.2560, -0.60202, 0.09400]
+        position_2 = [0.2560, -0.60202, 0.09510]
         rotation_vector_2 = [2.310, 2.40, -0.323]
 
         hole2_T_B_TCP = pose_to_se3(position=position_2, rotation=rotation_vector_2)
