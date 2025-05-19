@@ -30,8 +30,9 @@ class AutomateCapex:
         """Pick up the tube at the given pose."""
         tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]+0.120])
         self.move_to_target(tube_d_up)
+        
         self.move_to_target(tube_poses)
-     
+        
         self.robot.hande.move(255, 1, 255)
         tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]+0.120])
         time.sleep(2.5)
@@ -97,13 +98,13 @@ class AutomateCapex:
         time.sleep(2)
 
 
-    def tilt_it_in(self,target_hole,  speed_scalar, acceleration,tilt_amount):
+    def tilt_it_in(self,target_hole,  speed_scalar, acceleration,tilt_amount,Tool_length):
         print("tilt it in")
-        Tool_length = 0.160+0.081
-        print(Tool_length)
+        
         delta_p = 0.005
 
-        self.robot.ctrl.setTcp([0, 0, Tool_length, 0, 0, 0])
+        self.robot.ctrl.setTcp(Tool_length)
+
  
         Tilt = sm.SE3.Rx(np.deg2rad(tilt_amount))
 
@@ -111,9 +112,9 @@ class AutomateCapex:
 
         # Compute new pose after tilting around the tip
         Tilted_above_pose_TCP = above_T_B_TCP * Tilt
-        
         # Move robot
         self.robot.moveL(Tilted_above_pose_TCP)
+
         
         direction = above_T_B_TCP.t - target_hole.t 
         direction_unit = -(direction / np.linalg.norm(direction))
@@ -151,6 +152,8 @@ class AutomateCapex:
         untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0,-0.1)
 
         self.robot.moveL(pose = untilted_pose_above,speed=0.1,acc=0.1)
+
+        self.robot.ctrl.setTcp([0,0,0,0,0,0])
         
 
     def speed_until_force(self, direction_unit, stop_force, max_distance, speed_scalar, acceleration):
@@ -209,32 +212,46 @@ class AutomateCapex:
         #self.move_to_target(self.init_pose, T_W_DEFAULT.R)
         """Main execution function."""
 
+        reset_point = [0.700, -0.0750, 0.32]
 
-        reset_point = [0.800, -0.3500, 0.2]
-
-        tube_s1 = np.array([0.875, -0.450, 0.080])
-        tube_s2 = np.array([0.925, -0.450, 0.080])
+        tube_s1 = np.array([0.600, -0.075, 0.080])
+        tube_s2 = np.array([0.600, -0.125, 0.080])
         tilt_amount = 30
         tool_lenght = 0.160
         speed_scalar = 0.01
         acceleration = 0.01
 
-        position = [0.24798, -0.59093, 0.09410]
+        self.robot.ctrl.setTcp([0, 0, 0, 0, 0, 0])
+        self.move_to_target(reset_point)
+        
+        self.robot.hande.move(0, 1, 255)
+
+        ## Hole 1:
+        position = [0.35625, -0.34670, 0.24072 ] #[0.24798, -0.59093, 0.09410]
         rotation_vector = [2.912, 0.023, 0.027 ]
 
         hole_T_B_TCP = pose_to_se3(position=position, rotation=rotation_vector)
-
-        self.robot.hande.move(0, 1, 255)
+        
 
         self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
 
+
+
         self.pick_tube(tube_s1)
-    
-        self.tilt_it_in(hole_T_B_TCP,speed_scalar,acceleration,-tilt_amount)
 
         self.move_to_target(reset_point)
+
+        Tool_length_with_tube = 0.160+0.081
         
-        position_2 = [0.2560, -0.60202, 0.09510]
+        Tool = [0, 0, Tool_length_with_tube, 0, 0, 0]
+
+        self.tilt_it_in(hole_T_B_TCP,speed_scalar,acceleration,-tilt_amount, Tool)
+        
+        self.move_to_target(reset_point)
+
+
+        ## Hole 2:
+        position_2 = [0.36150, -0.35400, 0.24174]#[0.2560, -0.60202, 0.09510]
         rotation_vector_2 = [2.310, 2.40, -0.323]
 
         hole2_T_B_TCP = pose_to_se3(position=position_2, rotation=rotation_vector_2)
@@ -243,10 +260,32 @@ class AutomateCapex:
 
         self.pick_tube(tube_s2)
 
+        self.move_to_target(reset_point)
+
         self.tilt_it_in(hole2_T_B_TCP,speed_scalar,acceleration,tilt_amount)
+    
+        self.move_to_target(reset_point)
+
+        ##Syringe:
+        tube_s3 = np.array([0.645, -0.100, 0.075])
+        position_3 = [0.33226, -0.3195, 0.2455]#[0.35730, -0.34022, 0.24680]#[0.2560, -0.60202, 0.09510]
+        rotation_vector_3 = [2.310,2.317,-0.253]#[0.033, -3.152, 0.296]
 
         self.move_to_target(reset_point)
 
+        self.robot.hande.move(0, 1, 255)
+
+        self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
+
+        self.pick_tube(tube_s3)
+
+        Tool = [0, 0.072, 0.152, -1.5707, 0, 0]
+
+        hole3_T_B_TCP = pose_to_se3(position=position_3, rotation=rotation_vector_3)
+
+        self.tilt_it_in(hole3_T_B_TCP,speed_scalar,acceleration,tilt_amount,Tool)
+
+        self.move_to_target(reset_point)
 
         # self.pick_tube(tube_s2)
         # self.tilt_it_in(T_B_t2,speed_scalar,acceleration)
