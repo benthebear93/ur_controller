@@ -272,6 +272,36 @@ def se3_to_pose(se3_matrix: sm.SE3) -> np.ndarray:
     return pose
 
 
+def pose_to_se3(position, rotation):
+        """
+    Convert an pose (UR style) into a SE(3) matrix,
+    where the orientation is a rotation vector.
+
+    Parameters
+    ----------
+    position : np.ndarray
+        The Position of the endeffctor given in the base frame
+    rotation : np.ndarray
+        The orientation of the end effector, given in angle axis form
+    
+    Returns
+    -------
+    se3_matrix : SE3
+        The spatialmath SE(3) matrix.
+    """
+    # Convert rotation vector to axis-angle form
+        theta = np.linalg.norm(rotation)
+        if theta == 0:
+            R = sm.SO3()  # Identity rotation
+        else:
+            axis = np.array(rotation) / theta
+            R = sm.SO3.AngleAxis(theta, axis)
+
+        # Transformation matrix for the PEG inside the hole:
+        T = sm.SE3.Rt(R, position)
+
+        return T
+
 def transform_w_to_base(T_W_Tcp: np.array, T_W_Target: np.array, T_W_BASE: np.array):
     T_W_Target = make_tf(pos=T_W_Target.t, ori=T_W_Tcp.R)
     T_BASE_Target = T_W_BASE.inv() @ T_W_Target
