@@ -52,5 +52,8 @@ pybind11-stubgen rtde_io -o ./typings/
 ---
 
 ## EC-MS Automation for CAPeX
-run AutomateCapex.py for glass object insertion for DTU setup
-run AutomateCapex_extrinsic.py for test setup insertion for SDU setup with "blind" extrinsic
+```
+python3 AutomateCapex.py (glass object insertion for DTU setup)
+
+python3  AutomateCapex_extrinsic.py (test setup insertion for SDU setup with "blind" extrinsic)
+```
