@@ -61,9 +61,9 @@ class AutomateCapex:
         direction = above_T_B_TCP.t - np.array([target_hole_temp[0], target_hole_temp[1], target_hole_temp[2] -0.005])
         direction_unit = -(direction / np.linalg.norm(direction))
 
-        time.sleep(3)
-        self.robot.ctrl.zeroFtSensor()
         time.sleep(2)
+        self.robot.ctrl.zeroFtSensor()
+        time.sleep(5)
 
         stop_force = 5
         max_distance = 0.1
@@ -89,12 +89,14 @@ class AutomateCapex:
             untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0, 0.05) # syringe
             insertion_force = 4
             open = 130
-            direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
+            direction_tcp = sm.SE3(0,-1,0) * self.robot.T_base_tcp  #syringe-1
+            # direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
         else:
             untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0,-0.05) # tube
             insertion_force = 6
             open = 0
-            direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1) #tube
+            direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
+            
 
         self.speed_until_force(direction_tcp.t, insertion_force, max_distance, speed_scalar, acceleration)
         time.sleep(2)
@@ -292,9 +294,6 @@ class AutomateCapex:
         self.robot.moveJ(intermid_q)
         self.move_to_target(reset_point)
         tube_s2[2] = tube_s2[2] - 0.185
-        direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1) #tube
-
-        self.speed_until_force(direction_tcp.t, 3, 0.2, speed_scalar, acceleration)
 
         self.move_to_target(tube_s2, vel=speed_scalar)
         time.sleep(3)
