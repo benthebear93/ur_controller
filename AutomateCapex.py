@@ -89,7 +89,7 @@ class AutomateCapex:
             untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0, 0.05) # syringe
             insertion_force = 4
             open = 130
-            direction_tcp = sm.SE3(0,-1,0) * self.robot.T_base_tcp  #syringe-1
+            direction_tcp = sm.SE3(0,-1,0) * self.robot.T_base_tcp  #FIXME
             # direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
         else:
             untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0,-0.05) # tube
