@@ -18,8 +18,6 @@ class AutomateCapex:
         self.contact_pos = 0
         self.debug_tube_num = 2
 
-        
-
     @property
     def init_pose(self):
         return self._init_pose
@@ -38,7 +36,6 @@ class AutomateCapex:
         tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]])
         time.sleep(2.5)
         self.move_to_target(tube_d_up)
-        #self.move_to_target(T_W_S1.t, T_W_S1)
         pass
 
     def wire_insert(self):
@@ -54,6 +51,7 @@ class AutomateCapex:
         delta_p = 0.005
  
         above_T_B_TCP = target_hole
+        unload_pose = above_T_B_TCP
         # Move robot
         self.robot.moveL(above_T_B_TCP)
 
@@ -63,11 +61,11 @@ class AutomateCapex:
         direction = above_T_B_TCP.t - np.array([target_hole_temp[0], target_hole_temp[1], target_hole_temp[2] -0.005])
         direction_unit = -(direction / np.linalg.norm(direction))
 
-        time.sleep(2)
+        time.sleep(3)
         self.robot.ctrl.zeroFtSensor()
         time.sleep(2)
 
-        stop_force = 4
+        stop_force = 5
         max_distance = 0.1
 
         self.speed_until_force(direction_unit, stop_force, max_distance, speed_scalar, acceleration)
@@ -84,20 +82,20 @@ class AutomateCapex:
         rot_goal = tilt_rotvec #[2.757, -1.138, 0.195]
         untilted_pose = pose_to_se3(position=pose_curr, rotation=rot_goal)
         
+        time.sleep(2)
         self.robot.moveL(pose = untilted_pose,speed=0.01,acc=0.1)
 
         if syringe == 1:
             untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0, 0.05) # syringe
             insertion_force = 4
             open = 130
+            direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
         else:
             untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0,-0.05) # tube
             insertion_force = 6
             open = 0
+            direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1) #tube
 
-        # direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1) #tube
-        direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
-        #syringe
         self.speed_until_force(direction_tcp.t, insertion_force, max_distance, speed_scalar, acceleration)
         time.sleep(2)
         self.robot.hande.move(open, 1, 255)
@@ -106,6 +104,8 @@ class AutomateCapex:
 
         self.robot.moveL(pose = untilted_pose_above,speed=0.01,acc=0.01)
         self.robot.ctrl.setTcp([0,0,0.160,0,0,0])
+        untilted_pose_above = self.robot.T_base_tcp
+        return untilted_pose_above
         
 
     def speed_until_force(self, direction_unit, stop_force, max_distance, speed_scalar, acceleration):
@@ -169,7 +169,7 @@ class AutomateCapex:
         reset_ori = [1.738, 2.619, 0]
 
         tube_s1 = np.array([-0.51687, -0.3789, 0.250])
-        tube_s2 = np.array([-0.53563, -0.33245, 0.250])
+        tube_s2 = np.array([-0.53710, -0.33435, 0.250])
         tube_s3 = np.array([-0.56587, -0.37390, 0.230])
         tool_lenght = 0.160
         speed_scalar = 0.01
@@ -259,12 +259,11 @@ class AutomateCapex:
 
         self.move_to_target(reset_point)
 
-        # ## Hole 2:
+        ## Hole 2:
         self.move_to_target(reset_point)
         self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
 
         self.pick_tube(tube_s2)
-
         self.move_to_target(reset_point)
 
         intermid_position = [-0.26795, -0.19715, 0.40607]
@@ -274,20 +273,35 @@ class AutomateCapex:
         intermid_q = np.deg2rad(np.array([-130.14, -110, 87.81, -75.04, -90, -10.15]))
         self.robot.moveJ(intermid_q)
         
-        position = [0.38309, 0.37345, 0.44687 ]
-        rotation_vector = [3.264, -1.452, 0.388 ]
-
+        position = [0.38622, 0.36197, 0.43004 ]
+        rotation_vector = [3.241, 1.049, 0.921]
         hole2_T_B_TCP = pose_to_se3(position=position, rotation=rotation_vector)
-        tilt_rotvec = [3.057, -1.359, 0.030]
-        Tool_length_with_glass = 0.160+0.0667
+        tilt_rotvec = [3.098, 1.040, 0.290] #[3.134, -1.399, 0.098 ] #[3.057, -1.359, 0.030]
+        Tool_length_with_glass = 0.160+0.078
         Tool_long = [0, 0, Tool_length_with_glass, 0, 0, 0] # 3d printed
-        self.tilt_it_in(hole2_T_B_TCP, speed_scalar, acceleration, tilt_rotvec, Tool_long, 0)
-    
+        hole2_unload = self.tilt_it_in(hole2_T_B_TCP, speed_scalar, acceleration, tilt_rotvec, Tool_long, 0)
+        hole2_unload = hole2_unload * sm.SE3(0,0, 0.05)
+        self.robot.moveL(hole2_unload, speed=speed_scalar, acc=acceleration)
+        self.robot.hande.move(255, 1, 255)
+        time.sleep(3)
+        hole2_unload = hole2_unload * sm.SE3(0,0, -0.05)
+        self.robot.moveL(hole2_unload, speed=speed_scalar, acc=acceleration)
         intermid_position = [0.25775, 0.35171, 0.48121]
         self.move_to_target(intermid_position)
         intermid_q = np.deg2rad(np.array([4, -100, 81, -77, -85, 0]))
         self.robot.moveJ(intermid_q)
         self.move_to_target(reset_point)
+        tube_s2[2] = tube_s2[2] - 0.185
+        direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1) #tube
+
+        self.speed_until_force(direction_tcp.t, 3, 0.2, speed_scalar, acceleration)
+
+        self.move_to_target(tube_s2, vel=speed_scalar)
+        time.sleep(3)
+        self.move_to_target(reset_point)
+
+        # put it back
+
 
 if __name__ == "__main__":
 
