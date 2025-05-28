@@ -3,19 +3,20 @@ import time
 import numpy as np
 import spatialmath as sm
 
-from config import T_W_BASE, T_W_DEFAULT, T_W_S1 #T_BASE_S1, T_W_t1, T_W_t2
+from config_DTU import T_W_DEFAULT # T_W_S1 #T_BASE_S1, T_W_t1, T_W_t2, T_W_BASE
 from robot import Robot
 from utils import make_tf, se3_to_pose, pose_to_se3
 
 class AutomateCapex:
     def __init__(self, robot_ip: str, simulation: bool = False):
         self.robot = Robot(robot_ip, simulation)
-        self.T_W_BASE = T_W_BASE
-        self._init_pose = T_W_DEFAULT.t  # 비공개 속성으로 변경
+        # self.T_W_BASE = T_W_BASE
+        # self._init_pose = T_W_DEFAULT.t 
         self.wrench_data = self.robot.recv.getActualTCPForce()
         print("TCP : \n", self.robot.T_base_tcp)
         self.wrench_thrs = 0
         self.contact_pos = 0
+        self.debug_tube_num = 2
 
         
 
@@ -28,13 +29,13 @@ class AutomateCapex:
 
     def pick_tube(self, tube_poses):
         """Pick up the tube at the given pose."""
-        tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]+0.120])
+        self.move_to_target(tube_poses)
+
+        tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]-0.190])
         self.move_to_target(tube_d_up)
         
-        self.move_to_target(tube_poses)
-        
         self.robot.hande.move(255, 1, 255)
-        tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]+0.120])
+        tube_d_up = np.array([tube_poses[0], tube_poses[1], tube_poses[2]])
         time.sleep(2.5)
         self.move_to_target(tube_d_up)
         #self.move_to_target(T_W_S1.t, T_W_S1)
@@ -45,88 +46,31 @@ class AutomateCapex:
         T_W_Tcp.t[2] = T_W_Tcp.t[2]
         self.move_to_target(T_W_Tcp)
 
-    def push_it_in(self):
-        print("push it in")
-        depth_step = 0
-        xy_check = 0
-        xy_flag = 0
-        spiral = 0
-        dirx = [1, 1, -1, -1]
-        diry = [1, -1, -1, 1]
-        max_z_dist = 190/5
-        while True:
-            self.wrench_data = self.robot.recv.getActualTCPForce()
-            Fx = self.wrench_data[0]
-            Fy = self.wrench_data[1]
-            Fz = self.wrench_data[2] 
-            print(f"F : {self.wrench_data[0]:.3f}, {self.wrench_data[1]:.3f}, {self.wrench_data[2]:.3f} :")
-            print(f"GOAL CHECK ({depth_step}/38) :")
-            print(" ")
-            if Fz > 5.5:
-                if abs(Fx) > 2.0 or abs(Fy) > 2.0:
-                    for i in range(0, 4):
-                        if xy_flag == 0:
-                            goal =  sm.SE3.Tx(0.002*dirx[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step-0.001)
-                            self.move_to_target(goal.t, goal, 0.002)
-                            goal =  sm.SE3.Tx(0.002*dirx[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
-                            self.move_to_target(goal.t, goal, 0.002)
-                            xy_flag = 1
-                            time.sleep(0.1)
-                        else:
-                            goal = sm.SE3.Ty(0.002*diry[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step-0.001) 
-                            self.move_to_target(goal.t, goal, 0.002)
-                            goal =  sm.SE3.Ty(0.002*diry[xy_check]) @ T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
-                            self.move_to_target(goal.t, goal, 0.002)
-                            xy_flag = 0
-                            time.sleep(0.1)
-                    xy_check +=1
-                    if xy_check > 3:
-                        xy_check = 0
-                else:
-                    depth_step +=1
-                    goal = T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
-                    self.move_to_target(goal.t, goal, 0.0025)
-                    time.sleep(0.1)
-            else:
-                depth_step +=1
-                goal = T_W_S1 @ sm.SE3.Tz(0.0005*depth_step)
-                self.move_to_target(goal.t, goal, 0.0025)
-                time.sleep(0.1)
-            if depth_step > max_z_dist:
-                break
-        self.robot.hande.move(0, 1, 10)
-        time.sleep(2)
-
-
-    def tilt_it_in(self,target_hole,  speed_scalar, acceleration,tilt_amount,Tool_length):
+    def tilt_it_in(self,target_hole,  speed_scalar, acceleration, tilt_rotvec, Tool, syringe):
         print("tilt it in")
         
+        self.robot.ctrl.setTcp(np.array([0, 0, 0.160, 0, 0, 0]))
+
         delta_p = 0.005
-
-        self.robot.ctrl.setTcp(Tool_length)
-
  
-        Tilt = sm.SE3.Rx(np.deg2rad(tilt_amount))
-
-        above_T_B_TCP = target_hole * sm.SE3(0,0,-delta_p)
-
-        # Compute new pose after tilting around the tip
-        Tilted_above_pose_TCP = above_T_B_TCP * Tilt
+        above_T_B_TCP = target_hole
         # Move robot
-        self.robot.moveL(Tilted_above_pose_TCP)
+        self.robot.moveL(above_T_B_TCP)
 
-        
-        direction = above_T_B_TCP.t - target_hole.t 
+        self.robot.ctrl.setTcp(Tool)
+
+        target_hole_temp = target_hole.t
+        direction = above_T_B_TCP.t - np.array([target_hole_temp[0], target_hole_temp[1], target_hole_temp[2] -0.005])
         direction_unit = -(direction / np.linalg.norm(direction))
 
-        time.sleep(0.2)
+        time.sleep(2)
         self.robot.ctrl.zeroFtSensor()
-        time.sleep(0.2)
+        time.sleep(2)
 
-        stop_force = 1.5
+        stop_force = 4
         max_distance = 0.1
 
-        self.speed_until_force(direction_unit,stop_force,max_distance,speed_scalar,acceleration)
+        self.speed_until_force(direction_unit, stop_force, max_distance, speed_scalar, acceleration)
         
         task_frame = se3_to_pose(target_hole).tolist()
         selecetion_vector = [1, 1, 0, 0, 0, 0]
@@ -135,25 +79,33 @@ class AutomateCapex:
         limits = [0.01, 0.01, 0.1, 0.1, 0.1, 0.1]
 
         self.robot.ctrl.forceMode(task_frame,selecetion_vector,wrench,type,limits)
-
-        untilted_pose = self.robot.T_base_tcp  * sm.SE3.Rx(np.deg2rad(-tilt_amount)) * sm.SE3(0,0,0.0025)
+        pose_curr = self.robot.T_base_tcp.t
+        
+        rot_goal = tilt_rotvec #[2.757, -1.138, 0.195]
+        untilted_pose = pose_to_se3(position=pose_curr, rotation=rot_goal)
         
         self.robot.moveL(pose = untilted_pose,speed=0.01,acc=0.1)
 
-        direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1)
-        self.speed_until_force(direction_tcp.t,4,max_distance,speed_scalar,acceleration)
+        if syringe == 1:
+            untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0, 0.05) # syringe
+            insertion_force = 4
+            open = 130
+        else:
+            untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0,-0.05) # tube
+            insertion_force = 6
+            open = 0
 
-        self.robot.hande.move(0, 1, 255)
-
+        # direction_tcp = self.robot.T_base_tcp * sm.SE3(0,0,1) #tube
+        direction_tcp = sm.SE3(0,0,-1) * self.robot.T_base_tcp  #syringe
+        #syringe
+        self.speed_until_force(direction_tcp.t, insertion_force, max_distance, speed_scalar, acceleration)
+        time.sleep(2)
+        self.robot.hande.move(open, 1, 255)
         self.robot.ctrl.forceModeStop()
-
         time.sleep(3)
 
-        untilted_pose_above = self.robot.T_base_tcp * sm.SE3(0,0,-0.1)
-
-        self.robot.moveL(pose = untilted_pose_above,speed=0.1,acc=0.1)
-
-        self.robot.ctrl.setTcp([0,0,0,0,0,0])
+        self.robot.moveL(pose = untilted_pose_above,speed=0.01,acc=0.01)
+        self.robot.ctrl.setTcp([0,0,0.160,0,0,0])
         
 
     def speed_until_force(self, direction_unit, stop_force, max_distance, speed_scalar, acceleration):
@@ -189,122 +141,158 @@ class AutomateCapex:
         
 
     def move_to_target(self, target_pos_w: np.array, rot: sm.SO3 = None, vel:int = None):        # self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
+        # TODO : ADD THE REACHABILITY CHECKER FOR LARGET INPUT
 
         # self.pick_tube(tube_s2)t: sm.SO3 = None, vel:int = None):
         """Move the robot to the target position in world coordinates."""
-        T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
+        T_W_Tcp = self.get_tcp_pose() #self.T_W_BASE @ 
 
         # print("Tcp T in world :\n", T_W_Tcp)
         if rot is None:
             rot = T_W_DEFAULT.R
+        else:
+            rot = rot
+
         if vel is None:
             vel = 0.1
 
         T_W_Target = make_tf(pos=target_pos_w, ori=rot)
         # print("Target T in world :\n", T_W_Target)
-        T_BASE_Target = self.T_W_BASE.inv() @ T_W_Target
-        # print("Target T in base :\n", T_BASE_Target)
+        T_BASE_Target = T_W_Target #self.T_W_BASE.inv() @ 
+        print("Target T in base :\n", T_BASE_Target)
         self.robot.moveL(T_BASE_Target, vel)
 
     def run(self):
-        # Always go to the initial position first.
-        #self.robot.hande.move(0, 5, 10)
-        #self.move_to_target(self.init_pose, T_W_DEFAULT.R)
         """Main execution function."""
 
-        reset_point = [0.700, -0.0750, 0.32]
+        reset_point = [-0.53564, -0.33244, 0.269]
+        reset_ori = [1.738, 2.619, 0]
 
-        tube_s1 = np.array([0.600, -0.075, 0.080])
-        tube_s2 = np.array([0.600, -0.125, 0.080])
-        tilt_amount = 30
+        tube_s1 = np.array([-0.51687, -0.3789, 0.250])
+        tube_s2 = np.array([-0.53563, -0.33245, 0.250])
+        tube_s3 = np.array([-0.56587, -0.37390, 0.230])
         tool_lenght = 0.160
         speed_scalar = 0.01
         acceleration = 0.01
 
-        self.robot.ctrl.setTcp([0, 0, 0, 0, 0, 0])
-        self.move_to_target(reset_point)
+        # Tool_length_with_tube = 0.160+0.081
+        # Tool = [0, 0, Tool_length_with_tube, 0, 0, 0] # 3d printed
+        Tool_length_with_glass = 0.160+0.081
+        Tool = [0, 0, Tool_length_with_glass, 0, 0, 0] # 3d printed
+
+        q = self.robot.get_q()
+        self.robot.ctrl.setTcp(np.array([0, 0, 0.160, 0, 0, 0]))
+        home_q = np.deg2rad(np.array([22.09, -90, 90, -90, -90, 0]))
         
+        if q[0] < -0.785398:
+            raise RuntimeError("too large change of motion. Move it manually")
+        
+        self.robot.moveJ(home_q)
         self.robot.hande.move(0, 1, 255)
 
-        ## Hole 1:
-        position = [0.35625, -0.34670, 0.24072 ] #[0.24798, -0.59093, 0.09410]
-        rotation_vector = [2.912, 0.023, 0.027 ]
+        # ## Hole 1:
+    
+        self.move_to_target(reset_point)
+        self.robot.hande.move(0, 1, 255)
+        
+        position = [0.40105, 0.44490, 0.43982 ]
+        rotation_vector = [2.595, -1.107, 0.560 ]
 
         hole_T_B_TCP = pose_to_se3(position=position, rotation=rotation_vector)
-        
+
+        self.pick_tube(tube_s1)
+        intermid_position = [-0.26795, -0.19715, 0.40607]
+        intermid_rotvec   = [1.738, 2.619, 0]
+        intermid_position = pose_to_se3(position=intermid_position, rotation=intermid_rotvec)
+        self.robot.moveL(intermid_position)
+        intermid_q = np.deg2rad(np.array([-145.14, -110, 87.81, -75.04, -90, -10.15]))
+        self.robot.moveJ(intermid_q)
+
+        tilt_rotvec = [2.757, -1.138, 0.195]
+        self.tilt_it_in(hole_T_B_TCP, speed_scalar, acceleration, tilt_rotvec, Tool, 0)
+        intermid_q = np.deg2rad(np.array([-90.14, -73, 5.81, -66.04, -95, -10.15]))
+        self.robot.moveJ(intermid_q)
+        intermid_q = np.deg2rad(np.array([-40.14, -73, 5.81, -66.04, -95, -10.15]))
+        self.robot.moveJ(intermid_q)
+        intermid_q = np.deg2rad(np.array([18.14, -73, 56.81, -66.04, -95, -7.15]))
+        self.robot.moveJ(intermid_q)
+
+        ##Syringe:
+
+        position_3 = [0.33226, -0.3195, 0.2455]#[0.35730, -0.34022, 0.24680]#[0.2560, -0.60202, 0.09510]
+        rotation_vector_3 = [2.310,2.317,-0.253]#[0.033, -3.152, 0.296]
+
+        self.move_to_target(reset_point)
+        self.robot.hande.move(170, 1, 255)
+        time.sleep(1)
 
         self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
 
+        self.pick_tube(tube_s3)
+        intermid_position = [-0.26795, -0.19715, 0.40607]
+        intermid_rotvec   = [1.738, 2.619, 0]
+        intermid_position = pose_to_se3(position=intermid_position, rotation=intermid_rotvec)
+        self.robot.moveL(intermid_position)
+        intermid_q = np.deg2rad(np.array([-120.14, -110, 87.81, -75.04, -90, 110.15]))
+        self.robot.moveJ(intermid_q)
+        intermid_q = np.deg2rad(np.array([-134.5, -75, 79, -95, -90, 110]))
+        self.robot.moveJ(intermid_q)
 
+        move_away = [0.35407, 0.5264, 0.360]
+        self.move_to_target(move_away, self.robot.T_base_tcp.R)
 
-        self.pick_tube(tube_s1)
+        position = [0.33924, 0.43880, 0.40270]
+        rotation_vector = [1.600, -2.381, -1.070]
+        hole3_T_B_TCP = pose_to_se3(position=position, rotation=rotation_vector)
+
+        tilt_rotvec = [0.25,-0.232, -2.599]
+
+        Tool_syringe = [0, -0.074, 0.152, -1.5707, 0, 0]
+        self.tilt_it_in(hole3_T_B_TCP, speed_scalar ,acceleration, tilt_rotvec, Tool_syringe, 1)
+
+        intermid_q = np.deg2rad(np.array([-90.14, -73, 5.81, -66.04, -95, -10.15]))
+        self.robot.moveJ(intermid_q)
+        intermid_q = np.deg2rad(np.array([-40.14, -73, 5.81, -66.04, -95, -10.15]))
+        self.robot.moveJ(intermid_q)
+        intermid_q = np.deg2rad(np.array([18.14, -73, 56.81, -66.04, -95, -7.15]))
+        self.robot.moveJ(intermid_q)
 
         self.move_to_target(reset_point)
 
-        Tool_length_with_tube = 0.160+0.081
-        
-        Tool = [0, 0, Tool_length_with_tube, 0, 0, 0]
-
-        self.tilt_it_in(hole_T_B_TCP,speed_scalar,acceleration,-tilt_amount, Tool)
-        
+        # ## Hole 2:
         self.move_to_target(reset_point)
-
-
-        ## Hole 2:
-        position_2 = [0.36150, -0.35400, 0.24174]#[0.2560, -0.60202, 0.09510]
-        rotation_vector_2 = [2.310, 2.40, -0.323]
-
-        hole2_T_B_TCP = pose_to_se3(position=position_2, rotation=rotation_vector_2)
-
         self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
 
         self.pick_tube(tube_s2)
 
         self.move_to_target(reset_point)
 
-        self.tilt_it_in(hole2_T_B_TCP,speed_scalar,acceleration,tilt_amount)
+        intermid_position = [-0.26795, -0.19715, 0.40607]
+        intermid_rotvec   = [1.738, 2.619, 0]
+        intermid_position = pose_to_se3(position=intermid_position, rotation=intermid_rotvec)
+        self.robot.moveL(intermid_position)
+        intermid_q = np.deg2rad(np.array([-130.14, -110, 87.81, -75.04, -90, -10.15]))
+        self.robot.moveJ(intermid_q)
+        
+        position = [0.38309, 0.37345, 0.44687 ]
+        rotation_vector = [3.264, -1.452, 0.388 ]
+
+        hole2_T_B_TCP = pose_to_se3(position=position, rotation=rotation_vector)
+        tilt_rotvec = [3.057, -1.359, 0.030]
+        Tool_length_with_glass = 0.160+0.0667
+        Tool_long = [0, 0, Tool_length_with_glass, 0, 0, 0] # 3d printed
+        self.tilt_it_in(hole2_T_B_TCP, speed_scalar, acceleration, tilt_rotvec, Tool_long, 0)
     
+        intermid_position = [0.25775, 0.35171, 0.48121]
+        self.move_to_target(intermid_position)
+        intermid_q = np.deg2rad(np.array([4, -100, 81, -77, -85, 0]))
+        self.robot.moveJ(intermid_q)
         self.move_to_target(reset_point)
-
-        ##Syringe:
-        tube_s3 = np.array([0.645, -0.100, 0.075])
-        position_3 = [0.33226, -0.3195, 0.2455]#[0.35730, -0.34022, 0.24680]#[0.2560, -0.60202, 0.09510]
-        rotation_vector_3 = [2.310,2.317,-0.253]#[0.033, -3.152, 0.296]
-
-        self.move_to_target(reset_point)
-
-        self.robot.hande.move(0, 1, 255)
-
-        self.robot.ctrl.setTcp([0, 0, tool_lenght, 0, 0, 0])
-
-        self.pick_tube(tube_s3)
-
-        Tool = [0, 0.072, 0.152, -1.5707, 0, 0]
-
-        hole3_T_B_TCP = pose_to_se3(position=position_3, rotation=rotation_vector_3)
-
-        self.tilt_it_in(hole3_T_B_TCP,speed_scalar,acceleration,tilt_amount,Tool)
-
-        self.move_to_target(reset_point)
-
-        # self.pick_tube(tube_s2)
-        # self.tilt_it_in(T_B_t2,speed_scalar,acceleration)
-        ##time.sleep(5)
-        #self.robot.speedL([0,0,0.01,0,0,0])
-        ##time.sleep(5)
-        #self.robot.ctrl.speedStop()
-        #self.push_it_in()
-        # T_W_Tcp = self.T_W_BASE @ self.get_tcp_pose()
-        # T_W_move_out = T_W_Tcp @ sm.SE3.Tz(-0.08)
-        # print("MOVE OUT : \n", T_W_move_out)
-        # self.move_to_target(T_W_move_out, T_W_move_out.R)
-        # self.pick_tube(tube_poses[1])
-
 
 if __name__ == "__main__":
 
-    automate = AutomateCapex("192.168.0.12", True)
-    automate.robot.recv.startFileRecording("robot_data.csv")
+    automate = AutomateCapex("192.168.0.24", True)
+    # automate.robot.recv.startFileRecording("robot_data.csv")
     try:
         automate.run()
     except KeyboardInterrupt:
@@ -317,5 +305,3 @@ if __name__ == "__main__":
         #automate.robot.ctrl.setTcp([0, 0, 0, 0, 0, 0])
 
     automate.robot.ctrl.stopScript()
-
-    automate.robot.recv.stopFileRecording()
