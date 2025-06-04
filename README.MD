@@ -56,4 +56,5 @@ pybind11-stubgen rtde_io -o ./typings/
 python3 AutomateCapex.py (glass object insertion for DTU setup)
 
 python3  AutomateCapex_extrinsic.py (test setup insertion for SDU setup with "blind" extrinsic)
+NOTICE : syringe doesn't work due to collision detection and singularity during the force control
 ```
