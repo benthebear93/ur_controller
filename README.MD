@@ -50,5 +50,3 @@ pybind11-stubgen rtde_io -o ./typings/
 ```
 
 ---
-
-Let me know if you want me to rewrite anything for clarity or add more sections!
